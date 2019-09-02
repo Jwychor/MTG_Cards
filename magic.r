@@ -1,5 +1,7 @@
+#Files that were used can be found at https://mtgjson.com/downloads/compiled/   under "all cards"
+
 #####Dependencies#####
-#Files Required
+#Packages used
 require('RJSONIO')
 require('dplyr')
 require("reshape2")
