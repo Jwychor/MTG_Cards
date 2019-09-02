@@ -1,4 +1,4 @@
-#Files that were used can be found at https://mtgjson.com/downloads/compiled/   under "all cards"
+#The file used can be found at https://mtgjson.com/downloads/compiled/   under "all cards"
 
 #####Dependencies#####
 #Packages used
@@ -202,7 +202,7 @@ dm<-melt(bd,id.vars='Year')
 dm$Year<-as.character(dm$Year)
 dm$Year<-as.numeric(dm$Year)
 
-#Create object for later use of subsetting in the ggplot object and assigning color
+#Create object for later use of subsetting in the ggplot object and lists of color
 st<-c('Total Cards')
 cm<-c('Avg.Mana.Cost')
 cu<-c('Cumulative Total')
@@ -222,16 +222,16 @@ gb1<-ggplot(dm,aes(x=Year,y=value,group=factor(variable),color=factor(variable))
 ##Create specifications for the plot including colors, title, the number of lines to be drawn, and text size
 #Important to note that this will later graph with y on a log scale, which helps to not smush the lines but people on r/dataisbeautiful
 #were not happy about it. In the future for this type of project, make linear transformations to large data values if it does not fit 
-#instead of log transformations to the entire scale. I also removed the 
+#instead of log transformations to the entire scale. I also removed the y axis data labels. Also don't do that in the future.
 l<-gb1+geom_line(size=1.5,color=c(rep('green',27),rep('red',27),rep('blue',27),rep('grey85',27),rep('black',27),rep('gold',27),rep('gold',27),rep('purple',27)))+
   geom_text(aes(label=paste("Cards/Year",value,sep=" "),size=10,hjust=1,vjust=-.3),data=dm[dm$variable %in% st,],position=position_dodge(width=3),color='black')+
   geom_text(aes(label=paste(variable,round(value/15,1),sep=' '),size=10,hjust=1,vjust=-.3),data=dm[dm$variable %in% cm,],color='black')+
   geom_text(aes(label=paste("Total",round(value*20,1),sep=' '),size=10,hjust=1,vjust=-.3),data=dm[dm$variable %in% cu,],color='black')+
   scale_y_log10()+theme_light()+theme(legend.position='none')+theme(legend.position='none',axis.text.x=element_text(size=12),axis.title=element_text(size=18),title=element_text(size=20))
 
-##Create a gganimate object that zooms out to fit the data as data increases
+##Create a gganimate object that zooms out to fit the data as data increases.
 #Important to note that people at r/dataisbeaufitul were also not very happy about this and it would be prefered to leave out
-#the "view_follow" function in the future
+#the "view_follow" function in the future.
 l1<-l+transition_time(Year)+view_follow(fixed_y=T)+labs(title='Magic Card Frequencies by year',x="Year",y="Number of Cards")+
   annotation_custom(grob)+theme(axis.text.y = element_text(size=0))
   
