@@ -1,29 +1,20 @@
-#The file used can be found at https://mtgjson.com/downloads/compiled/   under "all cards"
+#####Packages and Data Loading#####
+#Require Packages
+##Add working directory here if saving images setwd('C:\\...')
 
-#####Dependencies#####
-#Packages used
-require('RJSONIO')
-require('dplyr')
-require("reshape2")
-require('tidyr')
-require('ggplot2')
-require('psych')
-require('stringr')
-require('jsonlite')
-require('gdata')
-require('gganimate')
-require('ggrepel')
-require('grid')
-require('plotly')
-require('gapminder')
 
-#####Importing and Cleaning#####
-#Assigning a JSON file of every magic card to an object
-a<-jsonlite::fromJSON("AllCards.json")
 
-#Creating a new dataframe of that includes name, converted manacost, 5 logical columns indicating whether the card is one of the 5 colors 
-#or not, the type of card it is, and every set it was printed in (9 total columns)
+packs<-c('RJSONIO','dplyr','reshape2','tidyr','ggplot2','psych','stringr','jsonlite','gdata',
+         'gdata','gganimate','ggrepel','grid','plotly','gapminder','transformr','gifski')
 
+sapply(packs,require,character=T)
+
+
+#Load JSON file from the source (this is a very large file, may take a few minutes)
+a<-jsonlite::fromJSON("https://www.mtgjson.com/files/AllCards.json")
+
+#####Data Cleaning and Processing#####
+#Create a dummy data frame and load relevant attributes of each card
 b<-as.data.frame(matrix(ncol=9,nrow=length(a)))
 for(i in 1:length(a)){
   b[i,1]<-a[[i]]$name
@@ -37,17 +28,12 @@ for(i in 1:length(a)){
   b[i,9]<-paste(a[[i]]$printings[1])
 }
 
-#Renaming columns and removing missing data
+#Rename columns
 colnames(b)<-c("name",'cmc','g','r','u','w','b','type','printing')
 b<-subset(b,!is.na(b))
 b$printing<-as.character(b$printing)
 
-##By each row, each card is evaluated for its earliest set by examing 3 character long strings representing which set they came from,
-##and overwriting the "printing" column with the year it was first printed.
-#Some cards come from multiple sets, but we only care about the first set it was released in. For this reason, sets are ordered from
-#earliest (1993) to latest (2019) dates. I only want to assign 1 year to each card, so when the earliest possible year is identified,
-#the loop iterates and checks the next card. We lose some cards here because there are many sets that have very few printed cards and
-#I did not want to spend a large amount of time finding them, so we go from ~20,000 cards to ~19,000 cards.
+#Record what year each card was made based on the earliest set made
 for(i in 1:nrow(b)){
   d<-as.character(unlist(strsplit(b[i,9],split=" ")));
   if(any(d[1:length(d)]=="LEA"|d[1:length(d)]=="LEB"|d[1:length(d)]=='2ED'|d[1:length(d)]=='ARN')==T){
@@ -160,20 +146,15 @@ for(i in 1:nrow(b)){
   }
 }
 
-#Remove any cards that did not get a year
+levels(factor(b$printing))
+
 b1<-b[startsWith(b$printing,"19")|startsWith(b$printing,"20"),]
 
-#Coerce printing into a number
 b1$printing<-as.numeric(b1$printing)
-
-#Remove gleemax, a card that costs 1,000,000 mana that heavily skews our data
 b1<-b1[!b1$cmc==max(b1$cmc),]
 
-#Check to see that cards from each year have standardly distributed mana costs. If the shapiro.test value is significant (p<0.05), the
-#data is standardly distributed.
 by(b1$cmc,b1$printing,FUN=shapiro.test)
 
-#Create new objects of summarized data for color count, average mana cost, and total number of cards for each year for ggplot purposes
 bg<-as.numeric(by(b1$g,b1$printing,FUN=sum))
 br<-as.numeric(by(b1$r,b1$printing,FUN=sum))
 bu<-as.numeric(by(b1$u,b1$printing,FUN=sum))
@@ -184,25 +165,25 @@ yb<-unique(b1$printing[order(b1$printing)])
 yc<-table(b1$printing)
 yd<-as.data.frame(yc)
 
-#Store all the values in a dataframe together and rename objects
 bd<-data.frame(bg,br,bu,bw,bb,bc,yb,yd$Freq)
 colnames(bd)<-c('Green','Red','Blue','White','Black','Avg.Mana.Cost','Year','Total')
 cu<-cumsum(bd$`Total`)
 bd<-data.frame(bd,cu)
 colnames(bd)[9]<-'Cumulative Total'
 
-#Manipulate data values so they fit on the same plot together
+bd$`Cumulative Total`
 bd$`Avg.Mana.Cost`<-bd$`Avg.Mana.Cost`*10
 bd$Total<-bd$Total
 colnames(bd)[8]<-"Total Cards"
 bd$`Cumulative Total`<-bd$`Cumulative Total`/20
 
-#Melt values so that each year has every data value
+bd$`Cumulative Total`
+bd$`Total Cards`
+
 dm<-melt(bd,id.vars='Year')
 dm$Year<-as.character(dm$Year)
 dm$Year<-as.numeric(dm$Year)
 
-#Create object for later use of subsetting in the ggplot object and lists of color
 st<-c('Total Cards')
 cm<-c('Avg.Mana.Cost')
 cu<-c('Cumulative Total')
@@ -211,66 +192,57 @@ co<-c('green','red','blue','white','black','purple','gold')
 levels(dm$variable)
 head(cu)
 
-#My signature on the plot
-grob <- grobTree(textGrob("Violent Science", x=0.1,  y=0.95, hjust=0,
-    gp=gpar(col="darkblue", fontsize=13, fontface="italic")))
+nyears<-nlevels(as.factor(dm$Year))
 
-#####ggplot#####
-#Create a ggplot data object
-gb1<-ggplot(dm,aes(x=Year,y=value,group=factor(variable),color=factor(variable)))
+#####Gganimate#####
+grob <- grobTree(textGrob("Jwychor", x=0.1,  y=0.95, hjust=0,
+    gp=gpar(col="darkblue", fontsize = 13, fontface = "italic")))
+nlevels(dm$variable)
+dm[dm$variable %in% st,]
 
-##Create specifications for the plot including colors, title, the number of lines to be drawn, and text size
-#Important to note that this will later graph with y on a log scale, which helps to not smush the lines but people on r/dataisbeautiful
-#were not happy about it. In the future for this type of project, make linear transformations to large data values if it does not fit 
-#instead of log transformations to the entire scale. I also removed the y axis data labels. Also don't do that in the future.
-l<-gb1+geom_line(size=1.5,color=c(rep('green',27),rep('red',27),rep('blue',27),rep('grey85',27),rep('black',27),rep('gold',27),rep('gold',27),rep('purple',27)))+
-  geom_text(aes(label=paste("Cards/Year",value,sep=" "),size=10,hjust=1,vjust=-.3),data=dm[dm$variable %in% st,],position=position_dodge(width=3),color='black')+
-  geom_text(aes(label=paste(variable,round(value/15,1),sep=' '),size=10,hjust=1,vjust=-.3),data=dm[dm$variable %in% cm,],color='black')+
-  geom_text(aes(label=paste("Total",round(value*20,1),sep=' '),size=10,hjust=1,vjust=-.3),data=dm[dm$variable %in% cu,],color='black')+
-  scale_y_log10()+theme_light()+theme(legend.position='none')+theme(legend.position='none',axis.text.x=element_text(size=12),axis.title=element_text(size=18),title=element_text(size=20))
+gb1<-ggplot(dm,aes(x = Year,y = value,group = factor(variable),color = factor(variable)))
+l<-gb1+geom_line(size = 1.5,color = c(rep('green',nyears),rep('red',nyears),rep('blue',nyears),rep('grey85',nyears),rep('black',nyears),rep('gold',nyears),rep('gold',nyears),rep('purple',nyears)))+
+  geom_text(aes(label = paste("Cards/Year",value,sep = " "),size = 10,hjust = 1,vjust = -.3),data = dm[dm$variable %in% st,],position = position_dodge(width = 3),color = 'black')+
+  geom_text(aes(label = paste(variable,round(value/15,1),sep = ' '),size = 10,hjust = 1,vjust = -.3),data = dm[dm$variable %in% cm,],color = 'black')+
+  geom_text(aes(label = paste("Total",round(value*20,1),sep = ' '),size = 10,hjust = 1,vjust = -.3),data = dm[dm$variable %in% cu,],color = 'black')+
+  scale_y_log10()+theme_light()+theme(legend.position = 'none')+theme(legend.position = 'none',axis.text.x = element_text(size = 12),
+                                                                      axis.title = element_text(size=18),title = element_text(size = 20))
 
-##Create a gganimate object that zooms out to fit the data as data increases.
-#Important to note that people at r/dataisbeaufitul were also not very happy about this and it would be prefered to leave out
-#the "view_follow" function in the future.
-l1<-l+transition_time(Year)+view_follow(fixed_y=T)+labs(title='Magic Card Frequencies by year',x="Year",y="Number of Cards")+
-  annotation_custom(grob)+theme(axis.text.y = element_text(size=0))
-  
-#Animate the object at 3 frames per second (otherwise it is way too fast)
-animate(l1,fps=3)
+l1<-l + transition_reveal(Year) + view_follow(fixed_y = T) + 
+  labs(title = 'Magic Card Frequencies by year',x = "Year",y = "Number of Cards")+
+  annotation_custom(grob)
 
-#Another way to look at this data although the scatterplot is much prefered over the bar graph for this type of data.
+animate(l1,fps=3,renderer = gifski_renderer(loop=T)) ##Generates a Gif plot of the data
+
+
 gb1<-ggplot(dm,aes(x=Year,y=value,group=factor(variable),color=factor(variable)))
 l2<-gb1+geom_line(size=1.5,color=c(rep('green',27),rep('red',27),rep('blue',27),rep('grey85',27),rep('black',27),rep('gold',27),rep('gold',27),rep('purple',27)))+
-  scale_y_log10()+theme_light()+theme(legend.position='none')+theme(legend.position='none',axis.text.x=element_text(size=12),axis.title=element_text(size=18),title=element_text(size=20))+
-  geom_text_repel(aes(label=ifelse(Year==1993,paste0(as.character(variable)),paste(""))),color="black")+annotation_custom(grob)+
+  scale_y_log10()+theme_light()+theme(legend.position='none')+theme(legend.position='none',axis.text.x=element_text(size = 12),axis.title=element_text(size = 18),title=element_text(size = 20))+
+  geom_text_repel(aes(label = ifelse(Year == 1993,paste0(as.character(variable)),paste(""))),color="black")+annotation_custom(grob)+
   labs(y="log(y)")+scale_x_continuous(breaks=seq(1993,2019,1))
 
+l2 ##Generates a static plot of the gif plot above
 
 
-
-#####Plotly#####
-##This is experimentation on the same things but with the Plotly package
-#It is important to note that many hard to explain linear transformations to data are made here which make the graph potentially
-#misleading or confusing.
 colnames(bd)[c(6,8,9)]<-c("Avg.Mana.Cost*10",'Yearly Total/5','Cumulative Total/50')
 
-#Linear data transformations and rounding
 bd$`Yearly Total/5`<-bd$`Yearly Total/5`/5
 bd$`Cumulative Total/50`<-bd$`Cumulative Total/50`*20
 bd$`Cumulative Total/50`<-bd$`Cumulative Total/50`/50
+
 bd$`Avg.Mana.Cost*10`<-round(bd$`Avg.Mana.Cost*10`,1)
 
-#Melting again
 dm<-melt(bd,id.vars='Year')
+bd
 
 dm$value<-as.numeric(dm$value)
 dm$Year<-as.numeric(dm$Year)
 
-#Plotly offers settable values and colors similar to how ggplot does. There is even a ggplot_ly command that transforms a ggplot object
-#into a Plotly object which can be very handy. In this case, the graph did not print smoothly with cubic-in-out smoothing because
-#smoothing is mainly used on scatteplots, but this offers an alternative and interactive plot that can also be helpful.
-p<- plot_ly(data=dm, 
-           x=~variable,
+#####Plotly#####
+levels(dm$variable)
+head(dm)
+
+p<- plot_ly(data=dm, x=~variable,
            y=~value,
            frame=~Year,
            marker=list(color=c('green','red','blue','pink',
@@ -279,9 +251,8 @@ p<- plot_ly(data=dm,
            type= 'bar',
            hoverinfo='variable') %>%
   animation_opts(1000,easing='cubic-in-out')
-p
 
-##Export the file
-#Note that the file can be hyperlinked and clicked on and will pop-up in a browser. This means that the link will not be usable from
-#a computer that does not have the same path and file.
-api_create(dm,filename='Magic_Cards_YOY')
+
+p #Create an interactive plotly barchart in the viewer
+
+##htmlwidgets::saveWidget(as_widget(p), "PlotlyMagicChart.html") #Save the image as an html widget
