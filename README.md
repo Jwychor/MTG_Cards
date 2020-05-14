@@ -3,3 +3,4 @@ An R file analyzing Magic the Gathering card attributes and frequencies as they 
 
 ![Alt Text](https://github.com/Jwychor/MTG_Cards/blob/master/Magic%20Cards%20YOY%20p1.gif)
 
+![Alt Text](https://github.com/Jwychor/MTG_Cards/blob/master/Plotly%20MTG%20graph.html)
