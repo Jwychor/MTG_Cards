@@ -1,6 +1,6 @@
 #####Packages and Data Loading#####
 #Require Packages
-##Add working directory here if saving images setwd('C:\\...')
+##setwd('C:\\...') #Add working directory here if saving images
 
 
 
